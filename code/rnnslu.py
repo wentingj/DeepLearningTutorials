@@ -200,16 +200,38 @@ class RNNSLU(object):
         y_sentence = T.ivector('y_sentence')  # labels
         # end-snippet-3 start-snippet-4
 
-        def recurrence(x_t, h_tm1):
-            h_t = T.nnet.sigmoid(T.dot(x_t, self.wx)
-                                 + T.dot(h_tm1, self.wh) + self.bh)
-            s_t = T.nnet.softmax(T.dot(h_t, self.w) + self.b)
-            return [h_t, s_t]
+        #def recurrence(x_t, h_tm1):
+        #    #h_t = T.nnet.sigmoid(T.dot(x_t, self.wx)
+        #    print('jwt change to tanh')
+	#    h_t = T.tanh(T.dot(x_t, self.wx)
+        #                         + T.dot(h_tm1, self.wh) + self.bh)
+        #    s_t = T.nnet.softmax(T.dot(h_t, self.w) + self.b)
+        #    return [h_t, s_t]
 
-        [h, s], _ = theano.scan(fn=recurrence,
+        #[h, s], _ = theano.scan(fn=recurrence,
+        #                        sequences=x,
+        #                        outputs_info=[self.h0, None],
+        #                        n_steps=x.shape[0])
+
+ 	def recurrence(x_t, h_tm1):
+            #h_t = T.nnet.sigmoid(T.dot(x_t, self.wx)
+            print('jwt change to tanh')
+            h_t = T.tanh(T.dot(x_t, self.wx)
+                                 + T.dot(h_tm1, self.wh) + self.bh)
+            return h_t
+
+	def softmax_step(h_t):
+            s_t = T.nnet.softmax(T.dot(h_t, self.w) + self.b)
+ 	    return s_t
+	
+        h, _ = theano.scan(fn=recurrence,
                                 sequences=x,
-                                outputs_info=[self.h0, None],
+                                outputs_info=self.h0,
                                 n_steps=x.shape[0])
+        s, _ = theano.scan(fn=softmax_step,
+				sequences=h,
+				outputs_info=None,
+				n_steps=x.shape[0])
 
         p_y_given_x_sentence = s[:, 0, :]
         y_pred = T.argmax(p_y_given_x_sentence, axis=1)
@@ -279,7 +301,7 @@ def main(param=None):
             'seed': 345,
             'emb_dimension': 50,
             # dimension of word embedding
-            'nepochs': 60,
+            'nepochs': 80,
             # 60 is recommended
             'savemodel': False}
     print(param)
